@@ -1,0 +1,8 @@
+{
+  "name": "FindMyDevices",
+  "displayName": "Find My Devices",
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-1939315010587936~5020981098",
+    "delay_app_measurement_init": true
+  }
+}

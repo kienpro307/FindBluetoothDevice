@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "160440074558",
+    "project_id": "find-bluetooth-devices",
+    "storage_bucket": "find-bluetooth-devices.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:160440074558:android:bafd705030616d9344ac6f",
+        "android_client_info": {
+          "package_name": "com.flabs.find.bluetooth.devices"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPR_k9h7Uf95KDcvfdwikJTuiyMOwwnzQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      },
+      "admob_app_id": "ca-app-pub-1939315010587936~5020981098"
+    }
+  ],
+  "configuration_version": "1"
+}
