@@ -18,45 +18,48 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {FontFamily, Color, FontSize, Border} from '../../GlobalStyles';
+import { FontFamily, Color, FontSize, Border } from '../../GlobalStyles';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import {BluetoothDeviceInfo} from '../../type';
-import {useIsFocused, useRoute} from '@react-navigation/native';
-import {rssi2Meter} from '../../utils/DistanceUtils';
-import {DEVICE_IMAGES, MIN_VALUE} from '../../constant';
+import { BluetoothDeviceInfo } from '../../type';
+import { useIsFocused, useRoute } from '@react-navigation/native';
+import { rssi2Meter } from '../../utils/DistanceUtils';
+import { DEVICE_IMAGES, MIN_VALUE } from '../../constant';
 import BluetoothModule from '../../native.module.android/BluetoothModule';
 import ScanContext from '../../context/ScanContext';
-import {dictionary2Trans} from '../../utils/LanguageUtils';
+import { dictionary2Trans } from '../../utils/LanguageUtils';
 import RNSpeedometer from '../../components/chart/speedometer';
-import {deviceDetectIcon} from '../../utils/IconDeviceUtils';
+import { deviceDetectIcon } from '../../utils/IconDeviceUtils';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome';
-import {BannerAdSize} from 'react-native-google-mobile-ads';
+import { BannerAdSize } from 'react-native-google-mobile-ads';
 import BannerAdWrap from '../../ads/BannerAdWrap';
 import NativeAdsShow from '../../ads/NativeAdsShow';
 // import {REMOTE_KEY, useRemote} from '../../remoteConfig/RemoteConfig';
-import {useAds} from '../../ads/AdsContext';
-import {firebaseSendEvent} from '../../firebase/FirebaseUtiils';
-import {useOpenApp} from '../open/OpenAppContext';
-import {REMOTE_KEY, useRemote} from '../../remoteConfig/RemoteConfig';
+import { useAds } from '../../ads/AdsContext';
+import { firebaseSendEvent } from '../../firebase/FirebaseUtiils';
+import { useOpenApp } from '../open/OpenAppContext';
+import { REMOTE_KEY, useRemote } from '../../remoteConfig/RemoteConfig';
+import { FlatList } from 'react-native-gesture-handler';
+// import { DirectCard } from '../../components/DirectCard';
+import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
 
 const windowWidth = Dimensions.get('window').width;
 const transparent = 'rgba(0,0,0,0.5)';
 
-const DetectDevice: React.FC = ({navigation}: any) => {
+const DetectDevice: React.FC = ({ navigation }: any) => {
   // const numberReScanShowAds = useRemote(REMOTE_KEY.re_scan_number_free);
   const ads = useAds();
   const openAds = useOpenApp();
   const isFocused = useIsFocused();
-  const {isScanning} = React.useContext(ScanContext);
+  const { isScanning } = React.useContext(ScanContext);
   const route = useRoute<any>();
   const [device, setDevice] = React.useState<BluetoothDeviceInfo | undefined>(
     undefined,
   );
   const [listHistory, setListHistory] = React.useState<
-    Array<{rssi: number; distance: string; time: number}>
+    Array<{ rssi: number; distance: string; time: number }>
   >([]);
 
   const [openModal, setOpenModal] = React.useState(false);
@@ -152,7 +155,7 @@ const DetectDevice: React.FC = ({navigation}: any) => {
               {listHistory.map(item => renderItemsHistory(item))}
             </ScrollView>
             <View
-              style={[styles.adNative, {width: '100%', paddingVertical: 0}]}>
+              style={[styles.adNative, { width: '100%', paddingVertical: 0 }]}>
               {ads}
             </View>
           </View>
@@ -297,11 +300,11 @@ const DetectDevice: React.FC = ({navigation}: any) => {
           borderBottomWidth: 1, // Thêm đường kẻ ngăn cách
           borderBottomColor: 'grey', // Màu sắc của đường kẻ ngăn cách
         }}>
-        <Text style={{color: 'black', fontSize: 16}}>RSSI: {item.rssi}</Text>
-        <Text style={{color: 'black', fontSize: 16}}>
+        <Text style={{ color: 'black', fontSize: 16 }}>RSSI: {item.rssi}</Text>
+        <Text style={{ color: 'black', fontSize: 16 }}>
           {dictionary2Trans('Distance')}: {item.distance}
         </Text>
-        <Text style={{color: 'black', fontSize: 16}}>
+        <Text style={{ color: 'black', fontSize: 16 }}>
           {dictionary2Trans('Time')}: {formattedTime} {formattedDate}
         </Text>
       </View>
@@ -315,6 +318,9 @@ const DetectDevice: React.FC = ({navigation}: any) => {
       // console.log('>>> im find device: ', device);
     }
   }, [isFocused]);
+
+  //const [openModal, setOpenModal] = React.useState(false);
+  const [direction, setDirection] = React.useState("North");
 
   return (
     <View style={styles.detectDeviceScreen}>
@@ -345,7 +351,7 @@ const DetectDevice: React.FC = ({navigation}: any) => {
               {dictionary2Trans('Detect Device')}
             </Text>
           </View>
-          <View style={{width: 40, height: 40}} />
+          <View style={{ width: 40, height: 40 }} />
         </View>
       </LinearGradient>
 
@@ -374,7 +380,7 @@ const DetectDevice: React.FC = ({navigation}: any) => {
           />
         </TouchableOpacity>
       </View>
-      <View style={{display: 'flex', height: hp('29%')}}>
+      <View style={{ display: 'flex', height: hp('29%') }}>
         <RNSpeedometer
           value={rssi2Meter(device ? device.rssi : MIN_VALUE)}
           minValue={0}
@@ -382,8 +388,49 @@ const DetectDevice: React.FC = ({navigation}: any) => {
         />
       </View>
 
+      <View>
+        {
+          isScanning ? (
+            <ActivityIndicator size="large" />
+          ) : (
+            <View>
+              <FlatList
+                data={["North", "South", "West", "East"]}
+                renderItem={({ item }) => (
+                  <TouchableWithoutFeedback
+                    style={{
+                      width: 50,
+                      padding: 10,
+                      backgroundColor: 'blue',
+                      borderRadius: 5,
+                      justifyContent: "space-between",
+                      shadowColor: "#000",
+                      shadowOffset: {
+                        width: 0,
+                        height: 2,
+                      },
+                      shadowOpacity: 0.25,
+                      shadowRadius: 5.84,
+                      elevation: 5,
+                    }}
+                    onPress={() => setDirection(item)}
+                  ></TouchableWithoutFeedback>
+                  // <DirectCard
+                  //   item={item}
+                  //   handleCardPress={setDirection}
+                  // />
+                )}
+                keyExtractor={(item) => item}
+                contentContainerStyle={{ columnGap: 10 }}
+                horizontal
+              />
+              <Text>{dictionary2Trans(direction)}</Text>
+            </View>
+          )}
+      </View>
+
       {/* <Text style={styles.distanceText}>{device?.rssi}</Text> */}
-      <View style={{display: 'flex'}}>
+      <View style={{ display: 'flex' }}>
         <Text style={styles.guideText}>
           {dictionary2Trans('go_around_to_update_distance')}
         </Text>
@@ -394,20 +441,20 @@ const DetectDevice: React.FC = ({navigation}: any) => {
       </View>
       {isScanning ? (
         <TouchableOpacity style={styles.buttonFind}>
-          <Text style={{color: 'white', fontSize: 20}}>
+          <Text style={{ color: 'white', fontSize: 20 }}>
             {dictionary2Trans('Scanning...')}
           </Text>
           <ActivityIndicator
             color={'white'}
             size={30}
-            style={{marginLeft: 5}}
+            style={{ marginLeft: 5 }}
           />
         </TouchableOpacity>
       ) : (
         <TouchableOpacity
           style={styles.buttonFind}
           onPress={() => handleFindDevice(device)}>
-          <Text style={{color: 'white', fontSize: 20}}>
+          <Text style={{ color: 'white', fontSize: 20 }}>
             {dictionary2Trans('Re-Scan')}
           </Text>
         </TouchableOpacity>
@@ -423,6 +470,7 @@ const DetectDevice: React.FC = ({navigation}: any) => {
 };
 
 const styles = StyleSheet.create({
+
   adLayout: {
     width: 328,
     position: 'absolute',
@@ -517,7 +565,7 @@ const styles = StyleSheet.create({
     height: 40,
     padding: 6,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 2,
     elevation: 5,
