@@ -56,7 +56,7 @@ const MainScreen: React.FC = () => {
     setOpenMenuModal,
     setShareApp,
     setOpenPolicy,
-    setOpenRatingModal
+    setOpenRatingModal,
   } = useAppContext();
 
   const handleEnvironmentVolumeChange = (value: number) => {
@@ -290,7 +290,7 @@ const MainScreen: React.FC = () => {
             </View> */}
 
             <View style={[styles.adNative]}>{ads}</View>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               onPress={() => handleClickLanguageSetting()}
               style={[styles.modalSettingHeader, {marginTop: 10}]}>
               <View style={{marginRight: 15}}>
@@ -310,7 +310,7 @@ const MainScreen: React.FC = () => {
                   </Text>
                 )}
               </View>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             {/* <TouchableOpacity
               onPress={() => setOpenSetting(false)}
               style={styles.modalButton}>
@@ -333,11 +333,11 @@ const MainScreen: React.FC = () => {
         useAngle={true}
         angle={180}>
         <View style={styles.action}>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             onPress={() => navigation.openDrawer()}
             style={styles.menu}>
             <Image resizeMode="cover" source={DEVICE_IMAGES.menu} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           {/* <TouchableOpacity style={styles.getpremiumbutton}>
             <Image resizeMode="cover" source={DEVICE_IMAGES.premium} />
             <Text style={[styles.getPremium, styles.scanTypo]}>
@@ -547,6 +547,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     width: 273,
     height: 76,
+    marginBottom: 50,
   },
   getPremium: {
     textAlign: 'right',
@@ -574,9 +575,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   action: {
-    marginTop: hp('5%'),
-    height: hp('7%'),
-    // height: hp('2%'),
+    marginTop: hp('3%'),
+    // height: hp('7%'),
+    height: hp('2%'),
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'row',
@@ -607,7 +608,7 @@ const styles = StyleSheet.create({
   navbar: {
     borderBottomRightRadius: 36,
     borderBottomLeftRadius: 36,
-    height: hp('22%'),
+    height: hp('15%'),
     // height: hp('17%'),
     backgroundColor: 'transparent',
     width: '100%',

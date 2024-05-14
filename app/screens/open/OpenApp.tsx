@@ -45,7 +45,7 @@ const OpenApp = (props: OpenAppProps) => {
     let number = 0;
     // show open
     let interval = setInterval(() => {
-      if (number >= 50 || !refShowAds.current) {
+      if (number >= 5 || !refShowAds.current) {
         if (interval) {
           clearInterval(interval);
         }
