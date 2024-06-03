@@ -4,7 +4,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import * as React from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   StyleSheet,
   View,
@@ -16,8 +16,9 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
-  FlatList,
-  TouchableWithoutFeedback,
+  GestureResponderHandlers,
+  PanResponderInstance,
+  PanResponder,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {FontFamily, Color, FontSize, Border} from '../../GlobalStyles';
@@ -43,6 +44,715 @@ import {useAds} from '../../ads/AdsContext';
 import {firebaseSendEvent} from '../../firebase/FirebaseUtiils';
 import {useOpenApp} from '../open/OpenAppContext';
 import {REMOTE_KEY, useRemote} from '../../remoteConfig/RemoteConfig';
+
+import {LogBox} from 'react-native';
+LogBox.ignoreLogs(['new NativeEventEmitter']); // Ignore log notification by message
+
+// ================================ COMPASS ==================================
+
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {
+  magnetometer,
+  setUpdateIntervalForType,
+  SensorTypes,
+} from 'react-native-sensors';
+import Svg, {Circle, Line, Path, Text as SvgText} from 'react-native-svg';
+import {isStrictNever} from '../../utils/StrictUtils';
+import {startCounter, stopCounter} from 'react-native-accurate-step-counter';
+import {FONTSIZE, HEIGHT, WIDTH} from '../../utils/ResponseDimensionUtils';
+
+type CompassDirection =
+  | 'North'
+  | 'North-East'
+  | 'East'
+  | 'South-East'
+  | 'South'
+  | 'South-West'
+  | 'West'
+  | 'North-West';
+
+const getCompassDirection = (angle: number): CompassDirection => {
+  if (angle >= 337.5 || angle < 22.5) return 'North';
+  if (angle >= 22.5 && angle < 67.5) return 'North-East';
+  if (angle >= 67.5 && angle < 112.5) return 'East';
+  if (angle >= 112.5 && angle < 157.5) return 'South-East';
+  if (angle >= 157.5 && angle < 202.5) return 'South';
+  if (angle >= 202.5 && angle < 247.5) return 'South-West';
+  if (angle >= 247.5 && angle < 292.5) return 'West';
+  if (angle >= 292.5 && angle < 337.5) return 'North-West';
+  return isStrictNever(angle as never); // impossible to get here
+};
+
+// ============================= DECARTES 2D PLANES ===========================
+
+// x and y axis start from top-left
+type Position = {
+  x: number;
+  y: number;
+};
+
+const ARROW_LENGTH = WIDTH(20); // 1/5 screen
+const COMPASS_RADIUS = WIDTH(25); // 1/4 screen
+const normalizedPosition: Position = {
+  x: WIDTH(50),
+  y: HEIGHT(15),
+};
+
+// type ButtonsProps = {
+//   move: (dx: number, dy: number) => void;
+//   rotate: (transitionAngle: number) => void;
+//   resetStep: () => void;
+// };
+
+// const Buttons = React.memo<ButtonsProps>(({ move, rotate, resetStep }) => {
+//   useEffect(() => {
+//     console.log('Buttons are rendered!');
+//   }, []);
+
+//   return (
+//     <View
+//       style={[
+//         styles.redBorder,
+//         {
+//           width: '100%',
+//           height: 'auto',
+//           flexDirection: 'row',
+//           justifyContent: 'space-between',
+//           alignItems: 'center',
+
+//           flexWrap: 'wrap'
+//           // columnGap: 10 // test,
+//         }
+//       ]}
+//     >
+//       <TouchableOpacity
+//         style={[styles.buttonContainer, styles.redBorder]}
+//         onPress={e => move(0, -20)}
+//       >
+//         <Text>Up</Text>
+//       </TouchableOpacity>
+//       <TouchableOpacity
+//         style={[styles.buttonContainer, styles.redBorder]}
+//         onPress={e => move(0, 20)}
+//       >
+//         <Text>Down</Text>
+//       </TouchableOpacity>
+//       <TouchableOpacity
+//         style={[styles.buttonContainer, styles.redBorder]}
+//         onPress={e => move(-20, 0)}
+//       >
+//         <Text>Left</Text>
+//       </TouchableOpacity>
+//       <TouchableOpacity
+//         style={[styles.buttonContainer, styles.redBorder]}
+//         onPress={e => move(20, 0)}
+//       >
+//         <Text>Right</Text>
+//       </TouchableOpacity>
+
+//       <TouchableOpacity
+//         style={[
+//           styles.buttonContainer,
+//           styles.redBorder,
+//           { flexBasis: '33.3%' }
+//         ]}
+//         onPress={e => rotate(-Math.PI / 10)}
+//       >
+//         <Text>RotateLeft</Text>
+//       </TouchableOpacity>
+
+//       <TouchableOpacity
+//         style={[
+//           styles.buttonContainer,
+//           styles.redBorder,
+//           { flexBasis: '33.3%' }
+//         ]}
+//         onPress={e => rotate(Math.PI / 10)}
+//       >
+//         <Text>RotateRight</Text>
+//       </TouchableOpacity>
+
+//       <TouchableOpacity
+//         style={[
+//           styles.buttonContainer,
+//           styles.redBorder,
+//           { flexBasis: '33.3%' }
+//         ]}
+//         onPress={e => resetStep()}
+//       >
+//         <Text>Reset Step</Text>
+//       </TouchableOpacity>
+
+//       {/* Workaround for flex wrap */}
+//       {/* <View
+//         style={{ flexGrow: 999, flexShrink: 1, flexBasis: 'auto' }}
+//       /> */}
+//     </View>
+//   );
+// });
+
+// const styles = StyleSheet.create({
+//   buttons: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     width: '80%'
+//   },
+//   redBorder: {
+//     borderColor: 'red',
+//     borderWidth: 1
+//   },
+//   buttonContainer: {
+//     flexGrow: 1,
+//     flexShrink: 0,
+//     flexBasis: '25%',
+//     alignItems: 'center', // centered text
+//     paddingVertical: 10
+//   }
+// });
+
+type PointInfo = {
+  position: Position;
+  length: number;
+  angle: number;
+  direction: Position;
+};
+
+type Plane2DProps = {
+  syncCompassPointInfo: PointInfo;
+  panHandlers: GestureResponderHandlers | undefined;
+  compassAngle: number;
+};
+
+const getRadAngle = (
+  compassAngle: number,
+  compassDirection: CompassDirection,
+) => {
+  switch (compassDirection) {
+    case 'East':
+      return compassAngle;
+    case 'North-East':
+      return compassAngle + Math.PI / 4;
+    case 'North':
+      return compassAngle + Math.PI / 2;
+    case 'North-West':
+      return compassAngle + (3 * Math.PI) / 4;
+    case 'West':
+      return compassAngle + Math.PI;
+    case 'South-West':
+      return compassAngle - (3 * Math.PI) / 4;
+    case 'South':
+      return compassAngle - Math.PI / 2;
+    case 'South-East':
+      return compassAngle - Math.PI / 4;
+    default:
+      return isStrictNever(compassDirection);
+  }
+};
+
+const Plane2D: React.FC<Plane2DProps> = ({
+  syncCompassPointInfo,
+  panHandlers,
+  compassAngle,
+}) => {
+  const getCompassPoint = (compassDirection: CompassDirection): Position => {
+    return {
+      x: COMPASS_RADIUS * Math.cos(getRadAngle(compassAngle, compassDirection)),
+      y:
+        -COMPASS_RADIUS * Math.sin(getRadAngle(compassAngle, compassDirection)), // Y inverted
+    };
+  };
+
+  const eastPoint = getCompassPoint('East');
+  const northEastPoint = getCompassPoint('North-East');
+  const northPoint = getCompassPoint('North');
+  const northWestPoint = getCompassPoint('North-West');
+  const westPoint = getCompassPoint('West');
+  const southWestPoint = getCompassPoint('South-West');
+  const southPoint = getCompassPoint('South');
+  const southEastPoint = getCompassPoint('South-East');
+
+  // NOTE: for now on, only print syncCompassPointInfo
+  // direction arrow head
+  const arrowheadLength = 20;
+  const arrowheadAngle = Math.PI / 6;
+  const transition = {
+    x: Math.cos(syncCompassPointInfo.angle) * arrowheadLength,
+    y: Math.sin(syncCompassPointInfo.angle) * arrowheadLength,
+  };
+
+  const x2 = transition.x + syncCompassPointInfo.position.x;
+  const y2 = transition.y + syncCompassPointInfo.position.y;
+  const x3 =
+    x2 -
+    arrowheadLength * Math.cos(syncCompassPointInfo.angle + arrowheadAngle);
+  const y3 =
+    y2 -
+    arrowheadLength * Math.sin(syncCompassPointInfo.angle + arrowheadAngle);
+  const x4 =
+    x2 -
+    arrowheadLength * Math.cos(syncCompassPointInfo.angle - arrowheadAngle);
+  const y4 =
+    y2 -
+    arrowheadLength * Math.sin(syncCompassPointInfo.angle - arrowheadAngle);
+
+  return (
+    <Svg width={WIDTH(100)} height={HEIGHT(32)} {...panHandlers}>
+      {/* X-axis */}
+      <Line
+        x1={WIDTH(15)}
+        y1={HEIGHT(15)}
+        x2={WIDTH(85)}
+        y2={HEIGHT(15)}
+        stroke={Color.colorDeepskyblue}
+        strokeWidth={WIDTH(1)}
+      />
+
+      {/* X text */}
+      {/* <SvgText
+        x={WIDTH(85)}
+        y={HEIGHT(14)}
+        fill={Color.colorBlue}
+        fontSize={FONTSIZE(2.5)}
+        fontWeight="bold"
+        textAnchor="middle">
+        X
+      </SvgText> */}
+
+      {/* Y-axis */}
+      <Line
+        x1={WIDTH(50)}
+        y1={HEIGHT(0)}
+        x2={WIDTH(50)}
+        y2={HEIGHT(30)}
+        stroke={Color.colorDeepskyblue}
+        strokeWidth={WIDTH(1)}
+      />
+
+      {/* Y text */}
+      {/* <SvgText
+        x={WIDTH(54)}
+        y={HEIGHT(2)}
+        fill={Color.colorBlue}
+        fontSize={FONTSIZE(2.5)}
+        fontWeight="bold"
+        textAnchor="middle">
+        Y
+      </SvgText> */}
+
+      {/* Compass */}
+      <Circle
+        cx={normalizedPosition.x}
+        cy={normalizedPosition.y}
+        r={COMPASS_RADIUS}
+        strokeWidth={WIDTH(1)}
+        stroke={Color.colorRed}
+        fill={'transparent'}
+      />
+      <Circle
+        cx={normalizedPosition.x + eastPoint.x}
+        cy={normalizedPosition.y + eastPoint.y}
+        r={WIDTH(0.5)}
+        stroke={Color.colorBlack}
+        strokeWidth={WIDTH(1)}
+        fill={Color.colorBlack}
+      />
+      <Circle
+        cx={normalizedPosition.x + northEastPoint.x}
+        cy={normalizedPosition.y + northEastPoint.y}
+        r={WIDTH(0.5)}
+        stroke={Color.colorBlack}
+        strokeWidth={WIDTH(1)}
+        fill={Color.colorBlack}
+      />
+      <Circle
+        cx={normalizedPosition.x + northPoint.x}
+        cy={normalizedPosition.y + northPoint.y}
+        r={WIDTH(0.5)}
+        stroke={Color.colorBlack}
+        strokeWidth={WIDTH(1)}
+        fill={Color.colorBlack}
+      />
+      <Circle
+        cx={normalizedPosition.x + northWestPoint.x}
+        cy={normalizedPosition.y + northWestPoint.y}
+        r={WIDTH(0.5)}
+        stroke={Color.colorBlack}
+        strokeWidth={WIDTH(1)}
+        fill={Color.colorBlack}
+      />
+      <Circle
+        cx={normalizedPosition.x + westPoint.x}
+        cy={normalizedPosition.y + westPoint.y}
+        r={WIDTH(0.5)}
+        stroke={Color.colorBlack}
+        strokeWidth={WIDTH(1)}
+        fill={Color.colorBlack}
+      />
+      <Circle
+        cx={normalizedPosition.x + southWestPoint.x}
+        cy={normalizedPosition.y + southWestPoint.y}
+        r={WIDTH(0.5)}
+        stroke={Color.colorBlack}
+        strokeWidth={WIDTH(1)}
+        fill={Color.colorBlack}
+      />
+      <Circle
+        cx={normalizedPosition.x + southPoint.x}
+        cy={normalizedPosition.y + southPoint.y}
+        r={WIDTH(0.5)}
+        stroke={Color.colorBlack}
+        strokeWidth={WIDTH(1)}
+        fill={Color.colorBlack}
+      />
+      <Circle
+        cx={normalizedPosition.x + southEastPoint.x}
+        cy={normalizedPosition.y + southEastPoint.y}
+        r={WIDTH(0.5)}
+        stroke={Color.colorBlack}
+        strokeWidth={WIDTH(1)}
+        fill={Color.colorBlack}
+      />
+
+      <SvgText
+        x={normalizedPosition.x + eastPoint.x + WIDTH(4)}
+        y={normalizedPosition.y + eastPoint.y}
+        fill={Color.colorBlack}
+        textAnchor={'middle'}
+        fontSize={FONTSIZE(2)}>
+        E
+      </SvgText>
+
+      <SvgText
+        x={normalizedPosition.x + northEastPoint.x + WIDTH(2)}
+        y={normalizedPosition.y + northEastPoint.y - HEIGHT(1)}
+        fill={Color.colorBlack}
+        textAnchor={'middle'}
+        fontSize={FONTSIZE(2)}>
+        NE
+      </SvgText>
+
+      <SvgText
+        x={normalizedPosition.x + northPoint.x}
+        y={normalizedPosition.y + northPoint.y - HEIGHT(1)}
+        fill={'red'}
+        textAnchor={'middle'}
+        fontSize={FONTSIZE(2.5)}
+        fontWeight={'bold'}>
+        N
+      </SvgText>
+
+      <SvgText
+        x={normalizedPosition.x + northWestPoint.x - WIDTH(2)}
+        y={normalizedPosition.y + northWestPoint.y - HEIGHT(1)}
+        fill={Color.colorBlack}
+        textAnchor={'middle'}
+        fontSize={FONTSIZE(2)}>
+        NW
+      </SvgText>
+
+      <SvgText
+        x={normalizedPosition.x + westPoint.x - WIDTH(4)}
+        y={normalizedPosition.y + westPoint.y}
+        fill={Color.colorBlack}
+        textAnchor={'middle'}
+        fontSize={FONTSIZE(2)}>
+        W
+      </SvgText>
+
+      <SvgText
+        x={normalizedPosition.x + southWestPoint.x - WIDTH(2)}
+        y={normalizedPosition.y + southWestPoint.y + HEIGHT(2)}
+        fill={Color.colorBlack}
+        textAnchor={'middle'}
+        fontSize={FONTSIZE(2)}>
+        SW
+      </SvgText>
+
+      <SvgText
+        x={normalizedPosition.x + southPoint.x}
+        y={normalizedPosition.y + southPoint.y + HEIGHT(3)}
+        fill={Color.colorBlack}
+        textAnchor={'middle'}
+        fontSize={FONTSIZE(2)}>
+        S
+      </SvgText>
+
+      <SvgText
+        x={normalizedPosition.x + southEastPoint.x + WIDTH(2)}
+        y={normalizedPosition.y + southEastPoint.y + HEIGHT(2)}
+        fill={Color.colorBlack}
+        textAnchor={'middle'}
+        fontSize={FONTSIZE(2)}>
+        SE
+      </SvgText>
+
+      {/* Arrow body */}
+      <Line
+        x1={normalizedPosition.x}
+        y1={normalizedPosition.y}
+        x2={normalizedPosition.x + syncCompassPointInfo.position.x}
+        y2={normalizedPosition.y + syncCompassPointInfo.position.y}
+        stroke={Color.colorRed}
+        strokeWidth={WIDTH(3)}
+      />
+
+      {/* Arrow head */}
+      <Path
+        d={`M${normalizedPosition.x + x2},${normalizedPosition.y + y2} L${
+          normalizedPosition.x + x3
+        },${normalizedPosition.y + y3} L${normalizedPosition.x + x4},${
+          normalizedPosition.y + y4
+        } Z`}
+        fill={Color.colorRed}
+      />
+
+      {/* O point */}
+      <Circle
+        cx={normalizedPosition.x}
+        cy={normalizedPosition.y}
+        r={WIDTH(1)}
+        stroke={Color.colorDeepskyblue}
+        strokeWidth={WIDTH(4)}
+        fill={Color.colorDeepskyblue}
+      />
+      {/* O text */}
+      {/* <SvgText
+        x={normalizedPosition.x - WIDTH(2)}
+        y={normalizedPosition.y + HEIGHT(3)}
+        fill={Color.colorDeepskyblue}
+        fontSize={FONTSIZE(2.5)}
+        fontWeight={'bold'}
+        textAnchor="middle">
+        O
+      </SvgText> */}
+    </Svg>
+  );
+};
+
+const initialPoint: PointInfo = {
+  position: {
+    x: WIDTH(10),
+    y: -HEIGHT(20),
+  },
+  angle: Math.atan2(
+    normalizedPosition.x + WIDTH(2),
+    normalizedPosition.y - HEIGHT(3),
+  ),
+  length: Math.sqrt(
+    (normalizedPosition.x + WIDTH(2)) ** 2 +
+      (normalizedPosition.y - HEIGHT(3)) ** 2,
+  ),
+  direction: {
+    x: WIDTH(10) / Math.sqrt(WIDTH(10) ** 2 + (-HEIGHT(20)) ** 2),
+    y: -HEIGHT(20) / Math.sqrt(WIDTH(10) ** 2 + (-HEIGHT(20)) ** 2),
+  },
+};
+
+const Navigation = () => {
+  const [pointInfo, setPointInfo] = useState<PointInfo>(initialPoint);
+  const [syncCompassPointInfo, setSyncCompassPointInfo] =
+    useState<PointInfo>(initialPoint);
+  const [compassAngle, setCompassAngle] = useState<number>(0);
+  const [normalizedCompassAngle, setNormalizedCompassAngle] =
+    useState<number>(0);
+  const [compassDirection, setCompassDirection] =
+    useState<CompassDirection>('North');
+  const [steps, setSteps] = useState(0);
+
+  // ============================================================================
+
+  const getDirection = useCallback((position: Position) => {
+    const vector = {x: position.x, y: position.y};
+
+    const magnitude = Math.sqrt(vector.x ** 2 + vector.y ** 2);
+
+    const normalizedVector = {
+      x: vector.x / magnitude,
+      y: vector.y / magnitude,
+    };
+
+    return normalizedVector;
+  }, []);
+
+  const getLength = useCallback((position: Position) => {
+    return Math.sqrt(position.x ** 2 + position.y ** 2);
+  }, []);
+
+  const getAngle = useCallback((direction: Position) => {
+    return Math.atan2(direction.y, direction.x);
+  }, []);
+
+  const panResponder = useRef<PanResponderInstance | null>(null);
+
+  useEffect(() => {
+    panResponder.current = PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: e => {
+        const newTempPosition = {
+          x: e.nativeEvent.locationX - normalizedPosition.x,
+          y: e.nativeEvent.locationY - normalizedPosition.y,
+        };
+        const newDirection = getDirection(newTempPosition);
+        const newAngle = getAngle(newTempPosition);
+        const newLength = ARROW_LENGTH;
+        const newPosition = {
+          x: newLength * Math.cos(newAngle),
+          y: newLength * Math.sin(newAngle),
+        };
+        const newPointInfo = {
+          position: newPosition,
+          direction: newDirection,
+          angle: newAngle,
+          length: newLength,
+        };
+
+        setPointInfo(newPointInfo);
+      },
+    });
+  }, [getDirection, getAngle, getLength]);
+
+  const move = (dx: number, dy: number) => {
+    setPointInfo(prevPointInfo => {
+      const newPosition = {
+        x: prevPointInfo.position.x + dx,
+        y: prevPointInfo.position.y + dy,
+      };
+      const newDirection = getDirection(newPosition);
+      const newAngle = getAngle(newDirection);
+      const newLength = getLength(newPosition);
+
+      return {
+        position: newPosition,
+        direction: newDirection,
+        angle: newAngle,
+        length: newLength,
+      };
+    });
+  }; // no recreate when Plane2D changed => no rerender Buttons
+
+  const rotate = (transitionAngle: number) => {
+    setPointInfo(prevPointInfo => {
+      const newAngle = prevPointInfo.angle + transitionAngle;
+      const newPosition = {
+        x: prevPointInfo.length * Math.cos(newAngle),
+        y: prevPointInfo.length * Math.sin(newAngle),
+      };
+      const newDirection = getDirection(newPosition);
+      const newLength = getLength(newPosition);
+
+      return {
+        position: newPosition,
+        angle: newAngle,
+        direction: newDirection,
+        length: newLength,
+      };
+    });
+  };
+
+  // initiate compass and step counter
+  useEffect(() => {
+    // compass
+    const subscription = magnetometer.subscribe(({x, y, z, timestamp}) => {
+      // const denormalizedAngle = Math.atan2(y, x) * (180 / Math.PI);
+      // const normalizedAngle =
+      //   denormalizedAngle >= 0 ? denormalizedAngle : denormalizedAngle + 360;
+      const denormalizedAngle = Math.atan2(y, x);
+      const normalizedAngle =
+        denormalizedAngle >= 0
+          ? denormalizedAngle
+          : denormalizedAngle + 2 * Math.PI;
+      setCompassAngle(normalizedAngle);
+      setCompassDirection(getCompassDirection(normalizedAngle));
+      setUpdateIntervalForType(SensorTypes.magnetometer, 500); // 500ms per update
+    });
+
+    // step counter
+    const config = {
+      default_threshold: 20.0, // best result experiment
+      default_delay: 400000000, // best result experiment
+      cheatInterval: 3000,
+      onStepCountChange: (stepCount: any) => {
+        setSteps(stepCount);
+      },
+      onCheat: () => {
+        console.log('You are moving too fast, slow down for best accuracy!');
+      },
+    };
+    startCounter(config);
+
+    return () => {
+      subscription.unsubscribe(); // compass
+      stopCounter(); // step counter
+    };
+  }, []);
+
+  // reset syncNormalizedCompassAngle each time pointInfo changed
+  useEffect(() => {
+    setNormalizedCompassAngle(compassAngle);
+  }, [pointInfo]);
+
+  // update arrow each time compassAngle or normalizedCompassAngle changed
+  useEffect(() => {
+    const newAngle = pointInfo.angle - compassAngle + normalizedCompassAngle;
+    console.log(
+      'Compass Angle',
+      compassAngle,
+      'Normalized Compass Angle',
+      normalizedCompassAngle,
+    );
+    const newPosition = {
+      x: ARROW_LENGTH * Math.cos(newAngle),
+      y: ARROW_LENGTH * Math.sin(newAngle),
+    };
+    const newDirection = getDirection(newPosition);
+    const newLength = getLength(newDirection);
+    const newSyncCompassPointInfo = {
+      angle: newAngle,
+      position: newPosition,
+      direction: newDirection,
+      length: newLength,
+    };
+    setSyncCompassPointInfo(newSyncCompassPointInfo);
+    // don't update original point here
+  }, [normalizedCompassAngle, compassAngle]);
+
+  return (
+    <Plane2D
+      syncCompassPointInfo={syncCompassPointInfo}
+      panHandlers={panResponder.current?.panHandlers}
+      compassAngle={compassAngle}
+    />
+    // <View
+    //   style={{
+    //     flex: 1,
+    //     justifyContent: 'center',
+    //     alignItems: 'center',
+    //   }}>
+    //   <Text
+    //     style={{
+    //       fontSize: 20,
+    //       fontWeight: 'bold',
+    //     }}>
+    //     Angle: {compassAngle.toFixed(2)}°
+    //   </Text>
+    //   <Text
+    //     style={{
+    //       fontSize: 20,
+    //       fontWeight: 'bold',
+    //     }}>
+    //     Direction: {compassDirection}
+    //   </Text>
+
+    //   <Text
+    //     style={{
+    //       fontSize: 20,
+    //       fontWeight: 'bold',
+    //     }}>
+    //     Steps: {steps}. Distance: {steps * 0.5}m
+    //   </Text>
+    // </View>
+  );
+};
 
 // import { DirectCard } from '../../components/DirectCard';
 
@@ -389,35 +1099,13 @@ const DetectDevice: React.FC = ({navigation}: any) => {
         />
       </View>
 
+      {/* My tricks */}
       <View>
         {isScanning && true && false ? (
           <ActivityIndicator size="large" />
         ) : (
-          <View style={{width: '100%', height: 'auto'}}>
-            <FlatList
-              data={['North', 'South', 'West', 'East']}
-              renderItem={({item}) => (
-                <TouchableWithoutFeedback onPress={() => setDirection(item)}>
-                  <View
-                    style={{
-                      width: 75,
-                      height: hp('10%'),
-
-                      backgroundColor: 'blue',
-
-                      justifyContent: 'space-between',
-                    }}></View>
-                </TouchableWithoutFeedback>
-                // <DirectCard
-                //   item={item}
-                //   handleCardPress={setDirection}
-                // />
-              )}
-              keyExtractor={item => item}
-              contentContainerStyle={{columnGap: 10}}
-              horizontal
-            />
-            <Text style={{color: 'black'}}>{dictionary2Trans(direction)}</Text>
+          <View style={{width: '100%', height: 'auto', display: 'flex'}}>
+            <Navigation />
           </View>
         )}
       </View>

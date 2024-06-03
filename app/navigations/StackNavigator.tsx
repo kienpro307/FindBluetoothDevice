@@ -23,7 +23,6 @@ import PolicyPreview from '../screens/policy/PolicyPreview';
 const Stack = createNativeStackNavigator();
 
 function StackNavigator() {
-
   return (
     <>
       <Stack.Navigator>

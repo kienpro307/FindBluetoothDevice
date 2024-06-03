@@ -32,6 +32,7 @@ export const Color = {
   colorLightgray: '#d7d7d7',
   colorPowderblue: '#d9f4fd',
   colorBlack: '#000',
+  colorRed: '#eb0e0e',
 };
 /* Paddings */
 export const Padding = {
