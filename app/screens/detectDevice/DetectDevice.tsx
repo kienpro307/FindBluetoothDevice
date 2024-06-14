@@ -249,11 +249,115 @@ const getRadAngle = (
   }
 };
 
+const stepCounterConfig = setSteps => {
+  return {
+    default_threshold: 20.0, // best result experiment
+    default_delay: 400000000, // best result experiment
+    cheatInterval: 3000,
+    onStepCountChange: (stepCount: number) => {
+      setSteps(stepCount);
+    },
+    onCheat: () => {
+      console.log(
+        'You are moving too fast, slow down to achive best accuracy!',
+      );
+    },
+  };
+};
+
+type ForwardDirectionAngle = number;
+type DirectionInfo = {
+  stepCount: number;
+  distance: number;
+};
+
 const Plane2D: React.FC<Plane2DProps> = ({
   syncCompassPointInfo,
   panHandlers,
   compassAngle,
 }) => {
+  const [isPressed, setIsPressed] = useState(false);
+  const [forwardDirectionAngle, setForwardDirectionAngle] =
+    useState<ForwardDirectionAngle>(0);
+  const [forwardStepInfo, setForwardStepInfo] = useState<DirectionInfo>({
+    stepCount: 0,
+    distance: 0,
+  });
+  const [backwardStepInfo, setBackwardStepInfo] = useState<DirectionInfo>({
+    stepCount: 0,
+    distance: 0,
+  });
+  const [leftwardStepInfo, setLeftwardStepInfo] = useState<DirectionInfo>({
+    stepCount: 0,
+    distance: 0,
+  });
+  const [rightwardStepInfo, setRightwardStepInfo] = useState<DirectionInfo>({
+    stepCount: 0,
+    distance: 0,
+  });
+
+  function SetStartNavigationModal() {
+    return (
+      <Modal visible={isPressed} transparent={true}>
+        <View
+          onTouchEnd={() => setIsPressed(false)}
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: transparent,
+          }}>
+          <View
+            onTouchEnd={e => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white',
+              padding: HEIGHT(4),
+              width: WIDTH(90),
+              borderRadius: HEIGHT(2),
+
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+            }}>
+            <Text
+              style={{
+                color: Color.colorBlack,
+                fontSize: FONTSIZE(4),
+                fontWeight: '500',
+                textAlign: 'center',
+              }}>
+              {dictionary2Trans('Confirm your starting position?')}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setIsPressed(false);
+              }}
+              style={{
+                backgroundColor: Color.colorBlue,
+                width: WIDTH(80),
+                height: HEIGHT(20),
+                marginTop: HEIGHT(5),
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderRadius: HEIGHT(5),
+              }}>
+              <Text
+                style={{
+                  textAlign: 'center',
+                  color: Color.colorWhite,
+                  fontFamily: FontFamily.khulaBold,
+                  fontWeight: '600',
+                }}>
+                {dictionary2Trans('confirm')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
   const getCompassPoint = (compassDirection: CompassDirection): Position => {
     return {
       x: COMPASS_RADIUS * Math.cos(getRadAngle(compassAngle, compassDirection)),
@@ -508,11 +612,12 @@ const Plane2D: React.FC<Plane2DProps> = ({
 
       {/* O point */}
       <Circle
+        onPress={() => {}}
         cx={normalizedPosition.x}
         cy={normalizedPosition.y}
         r={WIDTH(1)}
         stroke={Color.colorDeepskyblue}
-        strokeWidth={WIDTH(4)}
+        strokeWidth={WIDTH(5)}
         fill={Color.colorDeepskyblue}
       />
       {/* O text */}
@@ -548,16 +653,36 @@ const initialPoint: PointInfo = {
   },
 };
 
+const initialPoint2: PointInfo = {
+  position: {
+    x: WIDTH(0),
+    y: HEIGHT(0),
+  },
+  angle: Math.atan2(
+    normalizedPosition.x + WIDTH(0),
+    normalizedPosition.y + HEIGHT(0),
+  ),
+  length: Math.sqrt(
+    (normalizedPosition.x + WIDTH(0)) ** 2 +
+      (normalizedPosition.y + HEIGHT(0)) ** 2,
+  ),
+  direction: {
+    x: WIDTH(0) / Math.sqrt(WIDTH(0) ** 2 + HEIGHT(0) ** 2),
+    y: HEIGHT(0) / Math.sqrt(WIDTH(0) ** 2 + HEIGHT(0) ** 2),
+  },
+};
+
 const Navigation = () => {
-  const [pointInfo, setPointInfo] = useState<PointInfo>(initialPoint);
+  const [pointInfo, setPointInfo] = useState<PointInfo>(initialPoint2);
+
+  // Compass
   const [syncCompassPointInfo, setSyncCompassPointInfo] =
-    useState<PointInfo>(initialPoint);
+    useState<PointInfo>(initialPoint2);
   const [compassAngle, setCompassAngle] = useState<number>(0);
   const [normalizedCompassAngle, setNormalizedCompassAngle] =
     useState<number>(0);
   const [compassDirection, setCompassDirection] =
     useState<CompassDirection>('North');
-  const [steps, setSteps] = useState(0);
 
   // ============================================================================
 
@@ -649,7 +774,7 @@ const Navigation = () => {
     });
   };
 
-  // initiate compass and step counter
+  // initiate compass
   useEffect(() => {
     // compass
     const subscription = magnetometer.subscribe(({x, y, z, timestamp}) => {
@@ -666,23 +791,8 @@ const Navigation = () => {
       setUpdateIntervalForType(SensorTypes.magnetometer, 500); // 500ms per update
     });
 
-    // step counter
-    const config = {
-      default_threshold: 20.0, // best result experiment
-      default_delay: 400000000, // best result experiment
-      cheatInterval: 3000,
-      onStepCountChange: (stepCount: any) => {
-        setSteps(stepCount);
-      },
-      onCheat: () => {
-        console.log('You are moving too fast, slow down for best accuracy!');
-      },
-    };
-    startCounter(config);
-
     return () => {
       subscription.unsubscribe(); // compass
-      stopCounter(); // step counter
     };
   }, []);
 
@@ -717,11 +827,13 @@ const Navigation = () => {
   }, [normalizedCompassAngle, compassAngle]);
 
   return (
-    <Plane2D
-      syncCompassPointInfo={syncCompassPointInfo}
-      panHandlers={panResponder.current?.panHandlers}
-      compassAngle={compassAngle}
-    />
+    <View>
+      <Plane2D
+        syncCompassPointInfo={syncCompassPointInfo}
+        panHandlers={panResponder.current?.panHandlers}
+        compassAngle={compassAngle}
+      />
+    </View>
     // <View
     //   style={{
     //     flex: 1,
@@ -1057,8 +1169,15 @@ const DetectDevice: React.FC = ({navigation}: any) => {
               source={DEVICE_IMAGES.goBack}
             />
           </TouchableOpacity>
-          <View style={styles.textContainer}>
-            <Text style={styles.detectDevice}>
+          <View style={[styles.textContainer]}>
+            <Text
+              style={[
+                styles.detectDevice,
+                {
+                  fontSize: FONTSIZE(2.3),
+                  width: WIDTH(50),
+                },
+              ]}>
               {dictionary2Trans('Detect Device')}
             </Text>
           </View>
@@ -1076,9 +1195,26 @@ const DetectDevice: React.FC = ({navigation}: any) => {
             />
           )}
 
-          <View style={styles.deviceinfoText}>
-            <Text style={styles.deviceName}>{device?.name}</Text>
-            <Text style={styles.deviceDetail}>{device?.address}</Text>
+          <View
+            style={[
+              styles.deviceinfoText,
+              // {
+              //   flexDirection: 'row',
+              //   justifyContent: 'flex-start',
+              //   columnGap: WIDTH(3),
+              //   alignItems: 'center',
+              // },
+            ]}>
+            <Text style={[styles.deviceName, {fontSize: FONTSIZE(1.7)}]}>
+              {device?.name}
+            </Text>
+            <Text
+              style={[
+                styles.deviceDetail,
+                {fontSize: FONTSIZE(1.5), marginBottom: 2},
+              ]}>
+              {device?.address}
+            </Text>
           </View>
         </View>
         <TouchableOpacity
@@ -1121,7 +1257,11 @@ const DetectDevice: React.FC = ({navigation}: any) => {
         <NativeAdsShow size="small" repository="simple" />
       </View>
       {isScanning ? (
-        <TouchableOpacity style={styles.buttonFind}>
+        <TouchableOpacity
+          style={[
+            styles.buttonFind,
+            {backgroundColor: Color.colorWhite, borderColor: Color.colorWhite},
+          ]}>
           <Text style={{color: 'white', fontSize: 20}}>
             {dictionary2Trans('Scanning...')}
           </Text>
@@ -1133,7 +1273,10 @@ const DetectDevice: React.FC = ({navigation}: any) => {
         </TouchableOpacity>
       ) : (
         <TouchableOpacity
-          style={styles.buttonFind}
+          style={[
+            styles.buttonFind,
+            {backgroundColor: Color.colorWhite, borderColor: Color.colorWhite},
+          ]}
           onPress={() => handleFindDevice(device)}>
           <Text style={{color: 'white', fontSize: 20}}>
             {dictionary2Trans('Re-Scan')}

@@ -114,6 +114,8 @@ const MainScreen: React.FC = () => {
         appLink,
       ).props.children;
 
+      console.log('im supposed to share!');
+
       const result = await Share.share({
         title: 'App link',
         message: translatedMessage,
@@ -121,14 +123,15 @@ const MainScreen: React.FC = () => {
       });
     } catch (error) {
       // Xử lý lỗi nếu cần
+      console.log(error);
     }
   };
 
   useEffect(() => {
     const fetch = async () => {
-      const language = await StorageModule.getItem(LANGUAGE_PREFERENCE);
-      if (language != '' && language != null) {
-        setLanguage(language);
+      const currentLanguage = await StorageModule.getItem(LANGUAGE_PREFERENCE);
+      if (currentLanguage !== '' && currentLanguage !== null) {
+        setLanguage(currentLanguage);
       } else {
         setLanguage('en');
       }
@@ -140,15 +143,16 @@ const MainScreen: React.FC = () => {
     if (openRatingModal || openMenuModal || shareApp || openPolicy) {
       setOpenMenuModal(false);
     }
-  }, [openRatingModal, openMenuModal, shareApp, openPolicy]);
+  }, [openRatingModal, openMenuModal, shareApp, openPolicy, setOpenMenuModal]);
 
   useEffect(() => {
     if (shareApp) {
       setOpenMenuModal(false);
+      console.log('im sharing');
       onShare();
       setShareApp(false);
     }
-  }, [shareApp]);
+  }, [setOpenMenuModal, setShareApp, shareApp]);
 
   // useEffect(() => {
   //   if (openPolicy) {
@@ -156,7 +160,7 @@ const MainScreen: React.FC = () => {
   //     navigation.navigate('Policy');
   //     setOpenPolicy(false);
   //   }
-  // }, [openPolicy]);
+  // }, [navigation, openPolicy, setOpenMenuModal, setOpenPolicy]);
 
   // useEffect(() => {
   //   if (openRatingModal) {
@@ -164,15 +168,7 @@ const MainScreen: React.FC = () => {
   //     onShare();
   //     setOpenRatingModal(false);
   //   }
-  // }, [openRatingModal]);
-
-  // useEffect(() => {
-  //   if (shareApp) {
-  //     setOpenMenuModal(false);
-  //     onShare();
-  //     setShareApp(false);
-  //   }
-  // }, [shareApp]);
+  // }, [openRatingModal, setOpenMenuModal, setOpenRatingModal]);
 
   function settingModal(ads?: React.ReactNode) {
     return (
@@ -186,36 +182,15 @@ const MainScreen: React.FC = () => {
           onTouchEnd={() => setOpenSetting(false)}
           style={styles.modalBlackBg}>
           <View onTouchEnd={e => e.stopPropagation()} style={styles.modalBg}>
-            <View
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                width: '100%',
-                alignItems: 'center',
-              }}>
-              <View
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  width: 40,
-                  height: 60,
-                }}></View>
+            <View style={styles.modalHeader}>
               <Text style={styles.modalTextHeader}>
                 {dictionary2Trans('Setting')}
               </Text>
+
               <TouchableOpacity
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'flex-start',
-                  alignItems: 'center',
-                  width: 40,
-                  height: 60,
-                }}
+                style={styles.modalCloseButton}
                 onPress={() => setOpenSetting(false)}>
-                <FontAwesomeIcon name="close" size={25} color={'red'} />
+                <FontAwesomeIcon name="close" size={wp(8)} color={'red'} />
               </TouchableOpacity>
             </View>
 
@@ -231,7 +206,7 @@ const MainScreen: React.FC = () => {
             )}
             {!isBluetoothEnabled && !isLocationEnabled && (
               <Text style={[styles.modalTextTurnOnYour, {color: 'red'}]}>
-                Please turn your Bluetooth and Location
+                {dictionary2Trans('please_turn_on_bluetooth_and_location')}
               </Text>
             )}
             <View style={styles.modalBluetoothbar}>
@@ -290,7 +265,7 @@ const MainScreen: React.FC = () => {
             </View> */}
 
             <View style={[styles.adNative]}>{ads}</View>
-            {/* <TouchableOpacity
+            <TouchableOpacity
               onPress={() => handleClickLanguageSetting()}
               style={[styles.modalSettingHeader, {marginTop: 10}]}>
               <View style={{marginRight: 15}}>
@@ -310,7 +285,7 @@ const MainScreen: React.FC = () => {
                   </Text>
                 )}
               </View>
-            </TouchableOpacity> */}
+            </TouchableOpacity>
             {/* <TouchableOpacity
               onPress={() => setOpenSetting(false)}
               style={styles.modalButton}>
@@ -332,26 +307,28 @@ const MainScreen: React.FC = () => {
         colors={['#109bff', 'rgba(30, 160, 255, 0.6)']}
         useAngle={true}
         angle={180}>
-        <View style={styles.action}>
-          {/* <TouchableOpacity
-            onPress={() => navigation.openDrawer()}
-            style={styles.menu}>
-            <Image resizeMode="cover" source={DEVICE_IMAGES.menu} />
-          </TouchableOpacity> */}
-          {/* <TouchableOpacity style={styles.getpremiumbutton}>
+        <View style={styles.titleWrapper}>
+          <View style={styles.action}>
+            <TouchableOpacity
+              onPress={() => navigation.openDrawer()}
+              style={styles.menu}>
+              <Image resizeMode="contain" source={DEVICE_IMAGES.menu} />
+            </TouchableOpacity>
+            {/* <TouchableOpacity style={styles.getpremiumbutton}>
             <Image resizeMode="cover" source={DEVICE_IMAGES.premium} />
             <Text style={[styles.getPremium, styles.scanTypo]}>
               {dictionary2Trans('get_premium')}
             </Text>
           </TouchableOpacity> */}
-        </View>
-        <View style={styles.title}>
-          <Text style={styles.findMyDevices}>
-            {dictionary2Trans('Find my Devices')}
-          </Text>
-          <Text style={styles.helpYouFind}>
-            {dictionary2Trans('help_you_find')}
-          </Text>
+          </View>
+          <View style={styles.title}>
+            <Text style={styles.findMyDevices}>
+              {dictionary2Trans('Find my Devices')}
+            </Text>
+            <Text style={styles.helpYouFind}>
+              {dictionary2Trans('help_you_find')}
+            </Text>
+          </View>
         </View>
       </LinearGradient>
       <View style={styles.landingPageContainer}>
@@ -575,15 +552,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   action: {
-    marginTop: hp('3%'),
-    // height: hp('7%'),
-    height: hp('2%'),
-    overflow: 'hidden',
     display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
+    alignSelf: 'center',
+    paddingVertical: hp(0.5),
+    paddingHorizontal: wp(2),
+    // debug
+    // borderColor: 'red',
+    // borderWidth: 1,
   },
   findMyDevices: {
     fontSize: FontSize.size_lg_2,
@@ -602,8 +577,17 @@ const styles = StyleSheet.create({
   title: {
     display: 'flex',
     flexDirection: 'column',
-    overflow: 'hidden',
-    paddingHorizontal: 20,
+
+    // debug
+    // borderColor: 'red',
+    // borderWidth: 1,
+  },
+  titleWrapper: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    gap: 10,
   },
   navbar: {
     borderBottomRightRadius: 36,
@@ -613,7 +597,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     width: '100%',
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
     overflow: 'hidden',
   },
   mainscreen: {
@@ -700,13 +686,32 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   modalIcon: {width: 32, height: 32},
+  modalHeader: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
   modalTextHeader: {
     color: 'black',
     fontSize: 18,
     fontWeight: '700',
-    textAlign: 'center',
+    textAlign: 'left',
     textTransform: 'uppercase',
-    marginBottom: 10,
+    width: 'auto',
+
+    flex: 1,
+    // flexGrow: 1,
+    // flexShrink: 0,
+  },
+  modalCloseButton: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: wp(10),
+    height: wp(10),
   },
   modalTextButton: {
     textAlign: 'center',

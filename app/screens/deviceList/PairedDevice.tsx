@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   },
   scanDevices: {
     fontSize: FontSize.size_lg_2,
-    width: 147,
+    width: 'auto',
     height: 22,
     textAlign: 'center',
     color: Color.colorWhite,

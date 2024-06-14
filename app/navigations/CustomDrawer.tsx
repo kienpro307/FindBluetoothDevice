@@ -50,20 +50,20 @@ const CustomDrawer = (props: any) => {
       </LinearGradient>
 
       <View style={styles.drawerListWrapper}>
-        <DrawerItemList {...props} />
-        <DrawerItem
+        {/* <DrawerItemList {...props} /> */}
+        {/* <DrawerItem
           icon={({focused, color, size}) => (
             <MaterialIcons name="star-rate" size={30} color={color} />
           )}
           label={dictionary2String('Rate App')}
           labelStyle={styles.label}
           onPress={() => handleOpenRating()}
-        />
+        /> */}
         <DrawerItem
           icon={({focused, color, size}) => (
             <Entypo name="share" size={30} color={color} />
           )}
-          label={dictionary2String('Share App')}
+          label={dictionary2String('Chia sẻ ứng dụng')}
           labelStyle={styles.label}
           onPress={() => handleShareApp()}
         />
