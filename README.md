@@ -10,18 +10,12 @@
 4. [Development](#development)
 5. [Contributors](#contributors)
 
-
 ## Introduction
 
 A React Native application to find your lost Bluetooth devices in your house.
 
 ## Demo
-
-<div>
-    <div style="float: left; width: 48%;"><img src="./docs/home.jpg"/></div>
-    <div style="float: right; width: 48%;"><img src="./docs/rescan.jpg"/></div>
-    <div style="clear: both"></div> 
-</div>
+![home](./docs/home.jpg "home") ![scan](./docs/rescan.jpg "scan")
 
 ## Requirements
 - [**NodeJS**](https://nodejs.org/en/download/) (>= *v20*)
