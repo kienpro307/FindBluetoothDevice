@@ -1,79 +1,88 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
-# Getting Started
+<h1 align="center">
+    Find My Bluetooth Devices
+</h1>
 
->**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
+## Table of contents
+1. [Introduction](#introduction)
+2. [Demo](#demo)
+3. [Requirements](#requirements)
+4. [Development](#development)
+5. [Contributors](#contributors)
 
-## Step 1: Start the Metro Server
 
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
+## Introduction
 
-To start Metro, run the following command from the _root_ of your React Native project:
+A React Native application to find your lost Bluetooth devices in your house.
 
-```bash
-# using npm
-npm start
+## Demo
 
-# OR using Yarn
-yarn start
+<div>
+    <div style="float: left; width: 48%;"><img src="./docs/home.jpg"/></div>
+    <div style="float: right; width: 48%;"><img src="./docs/rescan.jpg"/></div>
+    <div style="clear: both"></div> 
+</div>
+
+## Requirements
+- [**NodeJS**](https://nodejs.org/en/download/) (>= *v20*)
+- An Android device with [**Developer Options**](https://developer.android.com/studio/debug/dev-options) enabled and [**USB Debugging**](https://developer.android.com/studio/debug/dev-options#Enable-debugging) activated.
+- **Optional**: activate _Wireless Debugging_ allow for wire-free operation after the initial application installation.
+
+## Developments
+1. Clone the repository and change directory
+```sh
+$ git clone --depth 1 git@github.com:kienpro307/FindBluetoothDevice.git && cd ./FindBluetoothDevice
 ```
 
-## Step 2: Start your Application
-
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
-
-### For Android
-
-```bash
-# using npm
-npm run android
-
-# OR using Yarn
-yarn android
+2. Install NodeJS dependencies
+```sh
+$ npm install
 ```
 
-### For iOS
-
-```bash
-# using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
+3. Clean Gradle
+```sh
+$ cd ./android && chmod +R gradlew && ./gradlew clean
 ```
 
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
+4. Start the Metro Server
+```sh
+$ npx react-native start --reset-cache
+```
 
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
+5. Run Android
+```sh
+$ npx react-native run-android
+```
 
-## Step 3: Modifying your App
+6. (Optional, if _Wireless Debugging_ activated) Setup wireless debug host and port
 
-Now that you have successfully run the app, let's modify it.
+**Inside your development machine, find the local IP address of your wireless NIC:**
+```sh
+# For both Linux and Windows
+ifconfig
+```
 
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
+**Open your Android device and configure the debug server host and port:**
 
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
+1. Open "Find My Devices" application after the initial application installation.
+2. Shake the device to open the "Settings" menu.
+3. Go to "Debugging".
+4. Select "Debug server host & port for device".
+5. Enter the following:
+```txt
+# Replace <ip_address> with the local IP address obtained in the previous step.
+<ip address>:8081
+```
 
-## Congratulations! :tada:
+## Contributors
 
-You've successfully run and modified your React Native App. :partying_face:
+|Name|Student ID|Description|
+|:---:|:---:|:---|
+|[Nguyễn Đức Kiên](https://github.com/kienpro307)|21020339|Team Leader, UI Designer, Architecture Designer, Programmer, Documenting, Presenter|
+|[Bùi Hữu Việt Hùng](https://github.com/Silverbullet069)|20020106|Tech Researcher, UI Fixer, Programmer, Documenting, Presenter, Demo|
+|[Đoàn Thị Minh Hằng](https://github.com/mhjame)|21020068|Programming, Documenting|
 
-### Now what?
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
 
-# Troubleshooting
 
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
 
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
