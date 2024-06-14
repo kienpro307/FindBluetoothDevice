@@ -10,7 +10,6 @@
 4. [Development](#development)
 5. [Contributors](#contributors)
 
-
 ## Introduction
 
 A React Native application to find your lost Bluetooth devices in your house.
